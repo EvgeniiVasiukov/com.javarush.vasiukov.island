@@ -4,7 +4,8 @@ import Models.Abstraction.Animal;
 import Models.Abstraction.IslandObject;
 import Models.Island.Cell;
 import Models.Island.Island;
-import Models.Plant;
+import Models.Utils.EatingChancesSource;
+import Simulation.Simulation;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -12,52 +13,47 @@ import java.util.function.Consumer;
 public class Mouse extends Herbivore {
 
     public Mouse() {
-        super(0.05, 500, 3, 0.5, 0.1, "\uD83D\uDC01"); // вес: 0.05, макс. на клетке: 500, скорость: 3, макс. сытость: 0.5
-    }
-    private Consumer<Animal> onDeathCallback; // Обработчик события смерти
-
-    public void setOnDeathCallback(Consumer<Animal> onDeathCallback) {
-        this.onDeathCallback = onDeathCallback;
+        super(0.05, 500, 3, 0.5, 0.1, "\uD83D\uDC01");
     }
 
     @Override
-    public void eat(IslandObject food, Cell currentCell) {
-        double initialSaturation = this.getCurrentSaturation(); // Уровень насыщения до еды
+    public void eat(IslandObject food, Cell currentCell, Simulation simulation) {
+        double initialSaturation = getCurrentSaturation();  // Saturation level before eating
 
-        if (food instanceof Plant) {
-            this.increaseSaturation(food.getWeight());
-            currentCell.removeObject(food); // Удаляем съеденное растение
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") eats a plant and gains " +
-                    String.format("%.1f", food.getWeight()) + " saturation (" +
-                    formatSaturation(initialSaturation, this.getCurrentSaturation()) + ").");
-        } else if (food instanceof Caterpillar) {
-            int roll = ThreadLocalRandom.current().nextInt(100);
-            if (roll < 90) { // 90% шанс съесть гусеницу
-                this.increaseSaturation(food.getWeight());
-                currentCell.removeObject(food); // Удаляем съеденную гусеницу
-                System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") eats a caterpillar and gains " +
+        if (food instanceof Models.Herbivore.Caterpillar) {
+            // Шанс поедания гусеницы
+            int chance = EatingChancesSource.getEatingChance(this.getClass(), food.getClass());
+            int roll = ThreadLocalRandom.current().nextInt(100);  // Random number from 0 to 99
+
+            if (roll < chance) {
+                // Increasing saturation after eating a caterpillar
+                increaseSaturation(food.getWeight());
+                currentCell.removeObject(food);  // Removing caterpillar from the cell
+                System.out.println(getUnicodeSymbol() + " (ID: " + getId() + ") eats a Caterpillar and gains " +
                         String.format("%.1f", food.getWeight()) + " saturation (" +
-                        formatSaturation(initialSaturation, this.getCurrentSaturation()) + ").");
+                        formatSaturation(initialSaturation, getCurrentSaturation()) + ").");
+
+                // Обновляем статистику по гусенице
+                if (food instanceof Animal) {
+                    Animal eatenAnimal = (Animal) food;
+                    eatenAnimal.getOnDeathCallback().accept(eatenAnimal, true); // Mark as eaten
+                }
             } else {
-                System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") tried to eat the caterpillar but failed (" +
-                        formatSaturation(initialSaturation, this.getCurrentSaturation()) + ").");
+                // If no caterpillar is eaten decreasing saturation
+                decreaseSaturation(getHungerRate());
+                System.out.println(getUnicodeSymbol() + " (ID: " + getId() + ") tried to eat a Caterpillar but failed (" +
+                        formatSaturation(initialSaturation, getCurrentSaturation()) + ").");
             }
         } else {
-            this.decreaseSaturation(this.getHungerRate());
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") could not find food and lost " +
-                    String.format("%.1f", this.getHungerRate()) + " saturation (" +
-                    formatSaturation(initialSaturation, this.getCurrentSaturation()) + ").");
+            // Herbivore behaviour if no caterpillar is found
+            super.eat(food, currentCell, simulation);  // method of parent class while eating the plant
         }
 
-        // Проверяем, умерло ли животное
-        if (this.isDead()) {
-            if (onDeathCallback != null) {
-                onDeathCallback.accept(this); // Сообщаем о смерти
-            }
-            currentCell.removeObject(this); // Удаляем животное из клетки
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") has died of hunger.");
-        }
+        // Check if the animal died from hunger
+        checkIfDead(currentCell, simulation);  // Pass the simulation object to update statistics
     }
+
+
 
 
 
@@ -66,6 +62,6 @@ public class Mouse extends Herbivore {
 
     @Override
     public void reproduce(Cell currentCell, Island island) {
-        super.reproduce(currentCell, island); // Логика размножения через базовый класс Animal
+        super.reproduce(currentCell, island); // Reproduction logic via base class Animal
     }
 }
