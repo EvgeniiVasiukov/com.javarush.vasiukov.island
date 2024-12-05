@@ -1,19 +1,15 @@
 package Models.Island;
 
-import Models.Abstraction.Animal;
 import Models.Abstraction.IslandObject;
-import Models.Plant;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class Cell {
-    private static final Logger logger = Logger.getLogger(Cell.class.getName());
     private final int x;
     private final int y;
     private final List<IslandObject> objectsOnCell;
-    private final int maxObjects = 10; // Максимальное количество объектов на клетке
+    private final int maxObjects = 10; // maximum number of objects in a cell
 
     public Cell(int x, int y) {
         this.x = x;
@@ -21,9 +17,6 @@ public class Cell {
         this.objectsOnCell = new ArrayList<>();
     }
 
-    public synchronized List<IslandObject> getObjects() {
-        return new ArrayList<>(objectsOnCell);
-    }
 
     public synchronized <T extends IslandObject> List<T> getObjectsOfType(Class<T> type) {
         List<T> result = new ArrayList<>();
@@ -39,41 +32,28 @@ public class Cell {
         return (int) objectsOnCell.stream().filter(type::isInstance).count();
     }
 
-    public synchronized void reproduceObjects(Island island) {
-        for (IslandObject obj : new ArrayList<>(objectsOnCell)) {
-            if (obj instanceof Animal) {
-                ((Animal) obj).reproduce(this, island);
-            }
-        }
-    }
-
     public synchronized boolean addObject(IslandObject object) {
-        if (!canAddObject(object)) {
-            return false;
-        }
-        objectsOnCell.add(object);
-        return true;
+        if (!canAddObject(object)) return false;
+        return objectsOnCell.add(object);
     }
 
     public synchronized boolean canAddObject(IslandObject object) {
         if (objectsOnCell.size() >= maxObjects) {
-            return false;
+            return false; // Cell is full
         }
-        return countObjectsOfType(object.getClass()) < object.getMaxCountOnLocation();
+        // We check if the number of objects of this type exceeds the limit
+        int typeCount = countObjectsOfType(object.getClass());
+        return typeCount < object.getMaxCountOnLocation();
     }
 
     public synchronized void removeObject(IslandObject object) {
         objectsOnCell.remove(object);
     }
 
-    public synchronized boolean hasSpaceForObject() {
-        return objectsOnCell.size() < maxObjects;
-    }
-
     public synchronized void removeDeadObjects() {
         objectsOnCell.removeIf(obj -> {
-            if (obj instanceof Animal && ((Animal) obj).isDead()) {
-                logger.info(() -> ((Animal) obj).getUnicodeSymbol() + " (ID: " + obj.getId() + ") died on cell (" + x + ", " + y + ").");
+            if (obj instanceof Models.Abstraction.Animal && ((Models.Abstraction.Animal) obj).isDead()) {
+                System.out.println(obj.getClass().getSimpleName() + " (ID: " + obj.getId() + ") removed from cell (" + x + ", " + y + ").");
                 return true;
             }
             return false;
