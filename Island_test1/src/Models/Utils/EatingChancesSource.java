@@ -14,52 +14,52 @@ public class EatingChancesSource {
     private static final Map<Class<? extends Predator>, Map<Class<? extends Herbivore>, Integer>> eatingChances = new HashMap<>();
 
     static {
-        // Шансы для волка
+        // Chances for wolf
         Map<Class<? extends Herbivore>, Integer> wolfChances = new HashMap<>();
         wolfChances.put(Rabbit.class, 60);
         wolfChances.put(Sheep.class, 50);
-        wolfChances.put(Goat.class, 40);
-        wolfChances.put(Mouse.class, 30);
+        wolfChances.put(Goat.class, 70);
+        wolfChances.put(Mouse.class, 90);
         wolfChances.put(Hamster.class, 70);
         wolfChances.put(Caterpillar.class, 90);
         wolfChances.put(Duck.class, 50);
-        wolfChances.put(Cow.class, 80);
-        wolfChances.put(Deer.class, 30);
+        wolfChances.put(Cow.class, 100);
+        wolfChances.put(Deer.class, 100);
         eatingChances.put(Wolf.class, wolfChances);
 
-        // Шансы для лисы
+        // Chances for fox
         Map<Class<? extends Herbivore>, Integer> foxChances = new HashMap<>();
-        foxChances.put(Rabbit.class, 50);
+        foxChances.put(Rabbit.class, 100);
         foxChances.put(Mouse.class, 70);
         foxChances.put(Hamster.class, 80);
         foxChances.put(Caterpillar.class, 90);
-        foxChances.put(Duck.class, 40);
+        foxChances.put(Duck.class, 100);
         eatingChances.put(Fox.class, foxChances);
 
-        // Шансы для медведя
+        // Chances for bear
         Map<Class<? extends Herbivore>, Integer> bearChances = new HashMap<>();
         bearChances.put(Rabbit.class, 40);
-        bearChances.put(Sheep.class, 60);
-        bearChances.put(Goat.class, 50);
+        bearChances.put(Sheep.class, 80);
+        bearChances.put(Goat.class, 90);
         bearChances.put(Mouse.class, 50);
-        bearChances.put(Cow.class, 30);
-        bearChances.put(Deer.class, 40);
-        bearChances.put(Duck.class, 50);
+        bearChances.put(Cow.class, 90);
+        bearChances.put(Deer.class, 80);
+        bearChances.put(Duck.class, 90);
         eatingChances.put(Bear.class, bearChances);
 
-        // Шансы для орла
+        // Chances for eagle
         Map<Class<? extends Herbivore>, Integer> eagleChances = new HashMap<>();
-        eagleChances.put(Mouse.class, 80);
-        eagleChances.put(Hamster.class, 70);
+        eagleChances.put(Mouse.class, 100);
+        eagleChances.put(Hamster.class, 100);
         eagleChances.put(Caterpillar.class, 90);
-        eagleChances.put(Duck.class, 60);
+        eagleChances.put(Duck.class, 80);
         eatingChances.put(Eagle.class, eagleChances);
 
-        // Шансы для змеи
+        // Chances for snake
         Map<Class<? extends Herbivore>, Integer> snakeChances = new HashMap<>();
-        snakeChances.put(Mouse.class, 60);
-        snakeChances.put(Hamster.class, 50);
-        snakeChances.put(Caterpillar.class, 70);
+        snakeChances.put(Mouse.class, 100);
+        snakeChances.put(Hamster.class, 100);
+        snakeChances.put(Caterpillar.class, 100);
         eatingChances.put(Snake.class, snakeChances);
     }
 
@@ -69,10 +69,10 @@ public class EatingChancesSource {
             Class<? extends Herbivore> herbivorePrey = (Class<? extends Herbivore>) prey;
             return specificEatingChanceLogic(predator, herbivorePrey);
         }
-        return 0; // Если prey не является травоядным
+        return 0; // If prey is not herbivore
     }
 
-    // Метод для получения шанса, если оба типа уже известны
+    // Method for getting chance if both types are already known
     public static int specificEatingChanceLogic(Class<?> predator, Class<? extends Herbivore> prey) {
         return eatingChances.getOrDefault(predator, new HashMap<>()).getOrDefault(prey, 0);
     }
