@@ -10,12 +10,12 @@ public abstract class IslandObject {
     private int maxCountOnLocation;
     private int x;
     private int y;
-    private String id; // Уникальный идентификатор для каждого объекта
+    private String id; // Unique ID for each object
 
     public IslandObject(double weight, int maxCountOnLocation) {
         this.weight = weight;
         this.maxCountOnLocation = maxCountOnLocation;
-        this.id = UUID.randomUUID().toString(); // Генерация уникального ID
+        this.id = UUID.randomUUID().toString(); // Unique ID generation
     }
 
     public String getId() {
