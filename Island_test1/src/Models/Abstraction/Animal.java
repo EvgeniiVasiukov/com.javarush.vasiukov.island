@@ -1,8 +1,9 @@
 package Models.Abstraction;
 
-import Models.Island.*;
+import Models.Island.Cell;
+import Models.Island.Island;
 import Models.Utils.BreedingConfig;
-import Models.Utils.MovementConfig;
+import Simulation.Simulation;
 
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -13,37 +14,25 @@ public abstract class Animal extends IslandObject {
     private final double maxSaturation;
     private double currentSaturation;
     private final double hungerRate;
-    private boolean hasMoved; // Флаг для отслеживания, переместилось ли животное
-    private final String id; // Уникальный идентификатор животного
+    private boolean hasMoved;
+    private final String id;
     private final String unicodeSymbol;
-    private BiConsumer<Animal, Boolean> onDeathCallback; // Обратный вызов для смерти животного
+    private BiConsumer<Animal, Boolean> onDeathCallback;
+    private boolean dead = false;  // Indication flag that animal is dead
 
     public Animal(double weight, int maxCountOnLocation, int travelSpeed, double maxSaturation, double hungerRate, String unicodeSymbol) {
         super(weight, maxCountOnLocation);
         this.travelSpeed = travelSpeed;
         this.maxSaturation = maxSaturation;
-        this.currentSaturation = maxSaturation; // Начальный уровень насыщения = максимальному
+        this.currentSaturation = maxSaturation;
         this.hungerRate = hungerRate;
         this.hasMoved = false;
         this.unicodeSymbol = unicodeSymbol;
         this.id = UUID.randomUUID().toString();
     }
 
-    // Геттеры
     public int getTravelSpeed() {
         return travelSpeed;
-    }
-
-    public double getMaxSaturation() {
-        return maxSaturation;
-    }
-
-    public double getCurrentSaturation() {
-        return currentSaturation;
-    }
-
-    public double getHungerRate() {
-        return hungerRate;
     }
 
     public String getId() {
@@ -53,115 +42,111 @@ public abstract class Animal extends IslandObject {
     public String getUnicodeSymbol() {
         return unicodeSymbol;
     }
+    public double getHungerRate() {
+        return hungerRate;
+    }
+    public double getMaxSaturation() {
+        return maxSaturation;
+    }
+    public double getCurrentSaturation() {
+        return currentSaturation;
+    }
 
+    public boolean hasMoved() {
+        return hasMoved;
+    }
     public BiConsumer<Animal, Boolean> getOnDeathCallback() {
         return onDeathCallback;
     }
 
-    // Сеттер для обратного вызова
+    public void setHasMoved(boolean hasMoved) {
+        this.hasMoved = hasMoved;
+    }
+
     public void setOnDeathCallback(BiConsumer<Animal, Boolean> callback) {
         this.onDeathCallback = callback;
     }
 
-    // Логика для уведомления о смерти
     protected void notifyDeath(boolean isEaten) {
         if (onDeathCallback != null) {
             onDeathCallback.accept(this, isEaten);
         }
     }
 
-    // Проверка, умерло ли животное
     public boolean isDead() {
         return currentSaturation <= 0;
     }
 
-    // Обработка смерти
-    public void checkIfDead(Cell currentCell) {
-        if (isDead()) {
-            currentCell.removeObject(this); // Удаляем животное из клетки
-            notifyDeath(false); // Уведомляем о смерти от голода
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") has died of hunger.");
-        }
-    }
-
-    // Уменьшение насыщения
     public void decreaseSaturation(double amount) {
-        currentSaturation -= amount;
-        if (currentSaturation < 0) {
-            currentSaturation = 0;
-        }
+        currentSaturation = Math.max(0, currentSaturation - amount);
     }
 
-    // Увеличение насыщения
     public void increaseSaturation(double amount) {
-        currentSaturation += amount;
-        if (currentSaturation > maxSaturation) {
-            currentSaturation = maxSaturation;
+        currentSaturation = Math.min(maxSaturation, currentSaturation + amount);
+    }
+
+    public void checkIfDead(Cell currentCell, Simulation simulation) {
+        if (isDead() && !dead) {  // Check that animal is not indicated as dead
+            currentCell.removeObject(this);  // Removing animal from the cell
+            simulation.incrementDeadAnimals(this, false);  // Adding to statistics
+
+            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") has died of hunger.");
+            this.dead = true;  // Setting dead flag to avoid second death
         }
     }
 
-    // Перемещение животного
+
+
+
+
+
+
     public void move(Cell currentCell, Cell targetCell) {
-        if (hasMoved) return;
+        if (!hasMoved && targetCell != null && targetCell.canAddObject(this)) {
+             //Logging for movement information
+            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") moved from (" +
+                   currentCell.getX() + ", " + currentCell.getY() + ") to (" +
+                    targetCell.getX() + ", " + targetCell.getY() + ").");
 
-        if (targetCell == null) {
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") cannot move: no target cell available.");
-            return;
-        }
-
-        int movementChance = MovementConfig.getMovementChance(this.getClass());
-        int roll = ThreadLocalRandom.current().nextInt(100);
-
-        if (roll < movementChance) {
-            if (targetCell.canAddObject(this)) {
-                currentCell.removeObject(this);
-                targetCell.addObject(this);
-                hasMoved = true;
-                System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") moved from (" +
-                        currentCell.getX() + ", " + currentCell.getY() + ") to (" +
-                        targetCell.getX() + ", " + targetCell.getY() + ").");
-            } else {
-                System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") cannot move to target cell: cell is full.");
-            }
-        } else {
-            System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") decided not to move.");
+            currentCell.removeObject(this);  // Removing the animal from the current cell
+            targetCell.addObject(this);      // Adding animal to the new cell
+            setHasMoved(true);                // Noticing that animal has moved
         }
     }
 
-    // Сбрасываем флаг перемещения
-    public void setHasMoved(boolean hasMoved) {
-        this.hasMoved = hasMoved;
-    }
 
-    public boolean hasMoved() {
-        return hasMoved;
-    }
 
     @Override
     public void reproduce(Cell currentCell, Island island) {
+        // Counting animals of the same species on the cell == condition for reproduction
         long sameSpeciesCount = currentCell.getObjectsOfType(this.getClass()).size();
 
-        if (sameSpeciesCount < 2) return; // Убедимся, что есть как минимум 2 животного одного типа на клетке
+        // Check that there are minimum 2 animals of the same kind
+        if (sameSpeciesCount < 2) return;
 
+        // Getting breeding chance for this species of animal
         int breedingChance = BreedingConfig.getBreedingChance(this.getClass());
-        int roll = ThreadLocalRandom.current().nextInt(100);
+        int roll = ThreadLocalRandom.current().nextInt(100);  // Random number generation (0 - 99)
+
+        // If the chance to reproduce has not passed, do nothing
         if (roll >= breedingChance) return;
 
+        // Get a random number of offspring for this animal speciesо
         int offspringCount = BreedingConfig.getRandomOffspringCount(this.getClass());
-
         System.out.println(this.getUnicodeSymbol() + " (ID: " + this.getId() + ") attempts to reproduce and give birth to " + offspringCount + " offspring.");
 
+
+        // Create descendants and add them to the cell
         for (int i = 0; i < offspringCount; i++) {
             try {
-                Animal offspring = this.getClass().getDeclaredConstructor().newInstance();
+                Animal offspring = this.getClass().getDeclaredConstructor().newInstance();  // Создаем потомка
+                boolean added = island.addObjectToCell(offspring, currentCell.getX(), currentCell.getY());  // Добавляем на клетку
 
-                // Пытаемся добавить потомка через метод Island
-                boolean added = island.addObjectToCell(offspring, currentCell.getX(), currentCell.getY());
                 if (added) {
-                    // Устанавливаем обратный вызов для потомка
+                    // Set a death callback for the descendant
                     offspring.setOnDeathCallback(this.getOnDeathCallback());
                 } else {
-                    break; // Прекращаем добавление, если невозможно добавить
+                    break;  // If the cell is full, stop creating offsprings
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -170,8 +155,6 @@ public abstract class Animal extends IslandObject {
     }
 
 
-
-    // Форматирование насыщения
     protected String formatSaturation(double initialSaturation, double currentSaturation) {
         String formattedInitial = initialSaturation < 0.05 ? "0" : String.format("%.2f", initialSaturation);
         String formattedCurrent = currentSaturation >= getMaxSaturation() ? "maxSaturation" :
@@ -179,7 +162,27 @@ public abstract class Animal extends IslandObject {
 
         return formattedInitial + " -> " + formattedCurrent;
     }
+    public IslandObject findFood(Cell currentCell) {
+        if (this instanceof Models.Herbivore.Herbivore) {
+            // Herbivores eat plants
+            return currentCell.getObjectsOfType(Models.Plant.class).stream().findFirst().orElse(null);
+        } else if (this instanceof Models.Predator.Predator) {
+            // Predators eat Herbivores
+            return currentCell.getObjectsOfType(Models.Herbivore.Herbivore.class).stream().findFirst().orElse(null);
+        } else if (this instanceof Models.Herbivore.Duck) {
+            // Ducks eat Caterpillars if there are no caterpillars than plants
+            IslandObject food = currentCell.getObjectsOfType(Models.Herbivore.Caterpillar.class).stream().findFirst().orElse(null);
+            if (food == null) {
+                food = currentCell.getObjectsOfType(Models.Plant.class).stream().findFirst().orElse(null);
+            }
+            return food;
+        }
+        return null; // if food is not found
+    }
 
-    // Метод для реализации еды
-    public abstract void eat(IslandObject food, Cell currentCell);
+
+
+    public abstract void eat(IslandObject food, Cell currentCell, Simulation simulation);
+
+
 }
