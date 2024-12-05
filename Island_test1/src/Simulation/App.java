@@ -2,13 +2,8 @@ package Simulation;
 
 public class App {
     public static void main(String[] args) {
-        // Задаем параметры симуляции
-        int islandWidth = 5;
-        int islandHeight = 5;
-        int steps = 20;
-
-        // Создаем и запускаем симуляцию
-        Simulation simulation = new Simulation(islandWidth, islandHeight, steps);
+        // Create and run a simulation
+        Simulation simulation = new Simulation(100, 100);
         simulation.initialize();
         simulation.start();
     }
