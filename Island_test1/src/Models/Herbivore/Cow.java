@@ -1,8 +1,8 @@
 package Models.Herbivore;
 
-public class Deer extends Herbivore {
+public class Cow extends Herbivore {
 
-    public Deer() {
-        super(150.0, 20, 2, 35.0, 7.0, "\uD83E\uDD8C");
+    public Cow() {
+        super(600.0, 20, 3, 60.0, 7.0, "\uD83D\uDC03");
     }
 }
