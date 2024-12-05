@@ -1,0 +1,47 @@
+package Models.Abstraction;
+
+import Models.Island.Cell;
+import Models.Island.Island;
+
+import java.util.UUID;
+
+public abstract class IslandObject {
+    private double weight;
+    private int maxCountOnLocation;
+    private int x;
+    private int y;
+    private String id; // Уникальный идентификатор для каждого объекта
+
+    public IslandObject(double weight, int maxCountOnLocation) {
+        this.weight = weight;
+        this.maxCountOnLocation = maxCountOnLocation;
+        this.id = UUID.randomUUID().toString(); // Генерация уникального ID
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public double getWeight() {
+        return weight;
+    }
+
+    public int getMaxCountOnLocation() {
+        return maxCountOnLocation;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public abstract void reproduce(Cell currentCell, Island island);
+}
